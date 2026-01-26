@@ -31,17 +31,26 @@ pub struct ConfigArgs {
     pub access_token: Option<String>,
     #[arg(long)]
     pub expires_at: Option<String>,
+    #[arg(long)]
+    pub show: bool,
 }
 
 pub fn run(args: ConfigArgs) -> Result<()> {
-    if args.client_id.is_none()
-        && args.client_secret.is_none()
-        && args.access_token.is_none()
-        && args.expires_at.is_none()
-    {
+    let has_updates = args.client_id.is_some()
+        || args.client_secret.is_some()
+        || args.access_token.is_some()
+        || args.expires_at.is_some();
+
+    if !args.show && !has_updates {
         bail!(
-            "at least one flag is required; use --client-id, --client-secret, --access-token, or --expires-at"
+            "at least one flag is required; use --client-id, --client-secret, --access-token, --expires-at, or --show"
         );
+    }
+
+    if args.show && !has_updates {
+        let config = load_config()?;
+        print_config(&config)?;
+        return Ok(());
     }
 
     let mut config = load_config()?;
@@ -67,6 +76,9 @@ pub fn run(args: ConfigArgs) -> Result<()> {
     let path = config_path()?;
     save_config(&path, &config)?;
     println!("Config updated at {}", path.display());
+    if args.show {
+        print_config(&config)?;
+    }
     Ok(())
 }
 
@@ -81,6 +93,37 @@ fn load_config() -> Result<Config> {
     let config: Config = serde_json::from_str(&raw)
         .with_context(|| format!("failed to parse config at {}", path.display()))?;
     Ok(config)
+}
+
+#[derive(Serialize)]
+struct DisplayConfig {
+    twitch: DisplayTwitchConfig,
+}
+
+#[derive(Serialize)]
+struct DisplayTwitchConfig {
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    access_token: Option<String>,
+    expires_at: Option<DateTime<Utc>>,
+}
+
+fn print_config(config: &Config) -> Result<()> {
+    let display = DisplayConfig {
+        twitch: DisplayTwitchConfig {
+            client_id: config.twitch.client_id.clone(),
+            client_secret: mask_value(&config.twitch.client_secret),
+            access_token: mask_value(&config.twitch.access_token),
+            expires_at: config.twitch.expires_at,
+        },
+    };
+    let json = serde_json::to_string_pretty(&display).context("failed to format config")?;
+    println!("{json}");
+    Ok(())
+}
+
+fn mask_value(value: &Option<String>) -> Option<String> {
+    value.as_ref().map(|_| "********".to_string())
 }
 
 fn save_config(path: &Path, config: &Config) -> Result<()> {
