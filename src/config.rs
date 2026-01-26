@@ -1,0 +1,168 @@
+use std::env;
+use std::fs;
+use std::io::Write;
+use std::path::{Path, PathBuf};
+
+use anyhow::{Context, Result, bail};
+use chrono::{DateTime, Utc};
+use clap::Args;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct Config {
+    pub twitch: TwitchConfig,
+}
+
+#[derive(Debug, Serialize, Deserialize, Default, Clone)]
+pub struct TwitchConfig {
+    pub client_id: Option<String>,
+    pub client_secret: Option<String>,
+    pub access_token: Option<String>,
+    pub expires_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Args)]
+pub struct ConfigArgs {
+    #[arg(long)]
+    pub client_id: Option<String>,
+    #[arg(long)]
+    pub client_secret: Option<String>,
+    #[arg(long)]
+    pub access_token: Option<String>,
+    #[arg(long)]
+    pub expires_at: Option<String>,
+}
+
+pub fn run(args: ConfigArgs) -> Result<()> {
+    if args.client_id.is_none()
+        && args.client_secret.is_none()
+        && args.access_token.is_none()
+        && args.expires_at.is_none()
+    {
+        bail!(
+            "at least one flag is required; use --client-id, --client-secret, --access-token, or --expires-at"
+        );
+    }
+
+    let mut config = load_config()?;
+
+    if let Some(value) = args.client_id {
+        config.twitch.client_id = Some(value);
+    }
+
+    if let Some(value) = args.client_secret {
+        config.twitch.client_secret = Some(value);
+    }
+
+    if let Some(value) = args.access_token {
+        config.twitch.access_token = Some(value);
+    }
+
+    if let Some(value) = args.expires_at {
+        let parsed = DateTime::parse_from_rfc3339(&value)
+            .with_context(|| "expires-at must be an RFC3339 timestamp")?;
+        config.twitch.expires_at = Some(parsed.with_timezone(&Utc));
+    }
+
+    let path = config_path()?;
+    save_config(&path, &config)?;
+    println!("Config updated at {}", path.display());
+    Ok(())
+}
+
+fn load_config() -> Result<Config> {
+    let path = config_path()?;
+    if !path.exists() {
+        return Ok(Config::default());
+    }
+
+    let raw = fs::read_to_string(&path)
+        .with_context(|| format!("failed to read config at {}", path.display()))?;
+    let config: Config = serde_json::from_str(&raw)
+        .with_context(|| format!("failed to parse config at {}", path.display()))?;
+    Ok(config)
+}
+
+fn save_config(path: &Path, config: &Config) -> Result<()> {
+    let dir = path
+        .parent()
+        .context("config path should have a parent directory")?;
+    fs::create_dir_all(dir).with_context(|| format!("failed to create {}", dir.display()))?;
+    set_dir_permissions(dir)?;
+
+    let json = serde_json::to_string_pretty(config).context("failed to serialize config")?;
+    let tmp_path = path.with_extension("json.tmp");
+    {
+        let mut file = fs::File::create(&tmp_path)
+            .with_context(|| format!("failed to write {}", tmp_path.display()))?;
+        file.write_all(json.as_bytes())
+            .context("failed to write config contents")?;
+        file.sync_all().context("failed to flush config")?;
+    }
+    if let Err(err) = fs::rename(&tmp_path, path) {
+        if path.exists() {
+            fs::remove_file(path)
+                .with_context(|| format!("failed to remove {}", path.display()))?;
+            fs::rename(&tmp_path, path)
+                .with_context(|| format!("failed to move config to {}", path.display()))?;
+        } else {
+            return Err(err)
+                .with_context(|| format!("failed to move config to {}", path.display()));
+        }
+    }
+    set_file_permissions(path)?;
+    Ok(())
+}
+
+fn config_path() -> Result<PathBuf> {
+    let base = config_base_dir()?;
+    Ok(base.join("config.json"))
+}
+
+fn config_base_dir() -> Result<PathBuf> {
+    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
+        return Ok(PathBuf::from(xdg).join("ttv"));
+    }
+
+    #[cfg(windows)]
+    {
+        if let Ok(appdata) = env::var("APPDATA") {
+            return Ok(PathBuf::from(appdata).join("ttv"));
+        }
+    }
+
+    let home = env::var("HOME")
+        .or_else(|_| env::var("USERPROFILE"))
+        .context("could not determine home directory")?;
+    Ok(PathBuf::from(home).join(".config").join("ttv"))
+}
+
+#[cfg(unix)]
+fn set_dir_permissions(path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let perms = fs::Permissions::from_mode(0o700);
+    fs::set_permissions(path, perms)
+        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_dir_permissions(_path: &Path) -> Result<()> {
+    Ok(())
+}
+
+#[cfg(unix)]
+fn set_file_permissions(path: &Path) -> Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let perms = fs::Permissions::from_mode(0o600);
+    fs::set_permissions(path, perms)
+        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn set_file_permissions(_path: &Path) -> Result<()> {
+    Ok(())
+}

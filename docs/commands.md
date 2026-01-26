@@ -9,6 +9,7 @@ These can be set by running `config`.
 ## Config
 
 The `config` command allows to specify the client ID and client secret used to make API calls to Twitch.tv.
+It can also store the app access token and its expiry.
 
 ## Follow
 
