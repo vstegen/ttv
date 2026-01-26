@@ -7,7 +7,8 @@ mod config;
 #[command(
     name = "ttv",
     version,
-    about = "Watch Twitch streams via streamlink and mpv"
+    about = "Watch Twitch streams via streamlink and mpv",
+    long_about = "ttv is a small CLI for interacting with Twitch. It manages API credentials and will provide commands to follow, list, and watch streams."
 )]
 struct Cli {
     #[command(subcommand)]

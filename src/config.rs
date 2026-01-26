@@ -22,16 +22,20 @@ pub struct TwitchConfig {
 }
 
 #[derive(Debug, Args)]
+#[command(about = "Manage Twitch API credentials and tokens")]
 pub struct ConfigArgs {
-    #[arg(long)]
+    #[arg(long, help = "Twitch application client ID")]
     pub client_id: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Twitch application client secret")]
     pub client_secret: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "App access token for Twitch API calls")]
     pub access_token: Option<String>,
-    #[arg(long)]
+    #[arg(
+        long,
+        help = "Token expiry as an RFC3339 timestamp (e.g. 2026-01-26T12:34:56Z)"
+    )]
     pub expires_at: Option<String>,
-    #[arg(long)]
+    #[arg(long, help = "Print the current configuration (secrets masked)")]
     pub show: bool,
 }
 

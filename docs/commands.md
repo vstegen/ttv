@@ -12,6 +12,14 @@ The `config` command allows to specify the client ID and client secret used to m
 It can also store the app access token and its expiry.
 Use `--show` to print the current configuration (secrets are masked).
 
+### Options
+
+- `--client-id <CLIENT_ID>`: Twitch application client ID.
+- `--client-secret <CLIENT_SECRET>`: Twitch application client secret.
+- `--access-token <ACCESS_TOKEN>`: App access token for Twitch API calls.
+- `--expires-at <RFC3339>`: Token expiry timestamp (RFC3339, e.g. `2026-01-26T12:34:56Z`).
+- `--show`: Print the current configuration with secrets masked.
+
 ## Follow
 
 The `follow` command allows to (locally) follow (multiple streamers). Following only happens locally and your follows on Twitch.tv are unaffected by this.
