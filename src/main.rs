@@ -5,6 +5,8 @@ mod auth;
 mod config;
 mod db;
 mod follow;
+mod fs_utils;
+mod paths;
 mod twitch;
 
 #[derive(Debug, Parser)]

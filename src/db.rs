@@ -1,12 +1,10 @@
-use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqliteConnectOptions;
 
-use crate::twitch::TwitchUser;
+use crate::{fs_utils, paths, twitch::TwitchUser};
 
 const DB_FILENAME: &str = "ttv.sqlite";
 
@@ -15,8 +13,7 @@ pub async fn connect() -> Result<SqlitePool> {
     let dir = path
         .parent()
         .context("database path should have a parent directory")?;
-    fs::create_dir_all(dir).with_context(|| format!("failed to create {}", dir.display()))?;
-    set_dir_permissions(dir)?;
+    fs_utils::ensure_dir(dir)?;
 
     let options = SqliteConnectOptions::new()
         .filename(&path)
@@ -26,12 +23,12 @@ pub async fn connect() -> Result<SqlitePool> {
         .with_context(|| format!("failed to open database at {}", path.display()))?;
 
     init_schema(&pool).await?;
-    set_file_permissions(&path)?;
+    fs_utils::set_file_permissions(&path)?;
     Ok(pool)
 }
 
 pub fn db_path() -> Result<PathBuf> {
-    let base = data_base_dir()?;
+    let base = paths::data_dir()?;
     Ok(base.join(DB_FILENAME))
 }
 
@@ -71,53 +68,5 @@ async fn init_schema(pool: &SqlitePool) -> Result<()> {
     .execute(pool)
     .await
     .context("failed to initialize database schema")?;
-    Ok(())
-}
-
-fn data_base_dir() -> Result<PathBuf> {
-    if let Ok(xdg) = env::var("XDG_DATA_HOME") {
-        return Ok(PathBuf::from(xdg).join("ttv"));
-    }
-
-    #[cfg(windows)]
-    {
-        if let Ok(appdata) = env::var("APPDATA") {
-            return Ok(PathBuf::from(appdata).join("ttv"));
-        }
-    }
-
-    let home = env::var("HOME")
-        .or_else(|_| env::var("USERPROFILE"))
-        .context("could not determine home directory")?;
-    Ok(PathBuf::from(home).join(".local").join("share").join("ttv"))
-}
-
-#[cfg(unix)]
-fn set_dir_permissions(path: &Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let perms = fs::Permissions::from_mode(0o700);
-    fs::set_permissions(path, perms)
-        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_dir_permissions(_path: &Path) -> Result<()> {
-    Ok(())
-}
-
-#[cfg(unix)]
-fn set_file_permissions(path: &Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let perms = fs::Permissions::from_mode(0o600);
-    fs::set_permissions(path, perms)
-        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_file_permissions(_path: &Path) -> Result<()> {
     Ok(())
 }

@@ -1,12 +1,13 @@
-use std::env;
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use chrono::{DateTime, Utc};
 use clap::Args;
 use serde::{Deserialize, Serialize};
+
+use crate::{fs_utils, paths};
 
 #[derive(Debug, Serialize, Deserialize, Default, Clone)]
 pub struct Config {
@@ -139,8 +140,7 @@ fn save_config(path: &Path, config: &Config) -> Result<()> {
     let dir = path
         .parent()
         .context("config path should have a parent directory")?;
-    fs::create_dir_all(dir).with_context(|| format!("failed to create {}", dir.display()))?;
-    set_dir_permissions(dir)?;
+    fs_utils::ensure_dir(dir)?;
 
     let json = serde_json::to_string_pretty(config).context("failed to serialize config")?;
     let tmp_path = path.with_extension("json.tmp");
@@ -162,59 +162,11 @@ fn save_config(path: &Path, config: &Config) -> Result<()> {
                 .with_context(|| format!("failed to move config to {}", path.display()));
         }
     }
-    set_file_permissions(path)?;
+    fs_utils::set_file_permissions(path)?;
     Ok(())
 }
 
 pub(crate) fn config_path() -> Result<PathBuf> {
-    let base = config_base_dir()?;
+    let base = paths::config_dir()?;
     Ok(base.join("config.json"))
-}
-
-fn config_base_dir() -> Result<PathBuf> {
-    if let Ok(xdg) = env::var("XDG_CONFIG_HOME") {
-        return Ok(PathBuf::from(xdg).join("ttv"));
-    }
-
-    #[cfg(windows)]
-    {
-        if let Ok(appdata) = env::var("APPDATA") {
-            return Ok(PathBuf::from(appdata).join("ttv"));
-        }
-    }
-
-    let home = env::var("HOME")
-        .or_else(|_| env::var("USERPROFILE"))
-        .context("could not determine home directory")?;
-    Ok(PathBuf::from(home).join(".config").join("ttv"))
-}
-
-#[cfg(unix)]
-fn set_dir_permissions(path: &Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let perms = fs::Permissions::from_mode(0o700);
-    fs::set_permissions(path, perms)
-        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_dir_permissions(_path: &Path) -> Result<()> {
-    Ok(())
-}
-
-#[cfg(unix)]
-fn set_file_permissions(path: &Path) -> Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let perms = fs::Permissions::from_mode(0o600);
-    fs::set_permissions(path, perms)
-        .with_context(|| format!("failed to set permissions on {}", path.display()))?;
-    Ok(())
-}
-
-#[cfg(not(unix))]
-fn set_file_permissions(_path: &Path) -> Result<()> {
-    Ok(())
 }
