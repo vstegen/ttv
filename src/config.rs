@@ -86,7 +86,7 @@ pub fn run(args: ConfigArgs) -> Result<()> {
     Ok(())
 }
 
-fn load_config() -> Result<Config> {
+pub(crate) fn load_config() -> Result<Config> {
     let path = config_path()?;
     if !path.exists() {
         return Ok(Config::default());
@@ -97,6 +97,11 @@ fn load_config() -> Result<Config> {
     let config: Config = serde_json::from_str(&raw)
         .with_context(|| format!("failed to parse config at {}", path.display()))?;
     Ok(config)
+}
+
+pub(crate) fn save_config_default(config: &Config) -> Result<()> {
+    let path = config_path()?;
+    save_config(&path, config)
 }
 
 #[derive(Serialize)]
@@ -112,7 +117,7 @@ struct DisplayTwitchConfig {
     expires_at: Option<DateTime<Utc>>,
 }
 
-fn print_config(config: &Config) -> Result<()> {
+pub(crate) fn print_config(config: &Config) -> Result<()> {
     let display = DisplayConfig {
         twitch: DisplayTwitchConfig {
             client_id: config.twitch.client_id.clone(),
@@ -161,7 +166,7 @@ fn save_config(path: &Path, config: &Config) -> Result<()> {
     Ok(())
 }
 
-fn config_path() -> Result<PathBuf> {
+pub(crate) fn config_path() -> Result<PathBuf> {
     let base = config_base_dir()?;
     Ok(base.join("config.json"))
 }

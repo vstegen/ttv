@@ -5,6 +5,12 @@
 The `auth` command will fetch a new app access token irrespective of whether the current one is still valid or not.
 For the command to succeed, a valid client ID and client secret are required to be present in the configuration.
 These can be set by running `config`.
+It stores the new access token and expiry in the config file.
+
+### Options
+
+- `--show`: Print the updated configuration (secrets masked).
+- `--verbose`: Print verbose request and update details.
 
 ## Config
 

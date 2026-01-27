@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+mod auth;
 mod config;
 
 #[derive(Debug, Parser)]
@@ -18,11 +19,14 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     Config(config::ConfigArgs),
+    Auth(auth::AuthArgs),
 }
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Commands::Config(args) => config::run(args),
+        Commands::Auth(args) => auth::run(args).await,
     }
 }
