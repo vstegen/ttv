@@ -29,6 +29,12 @@ Use `--show` to print the current configuration (secrets are masked).
 ## Follow
 
 The `follow` command allows to (locally) follow (multiple streamers). Following only happens locally and your follows on Twitch.tv are unaffected by this.
+It stores streamer information in a local SQLite database.
+If no valid access token is available, it will run `auth` automatically.
+
+### Options
+
+- `follow <LOGIN...>`: One or more Twitch login names to follow.
 
 ## List
 

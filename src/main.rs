@@ -3,6 +3,9 @@ use clap::{Parser, Subcommand};
 
 mod auth;
 mod config;
+mod db;
+mod follow;
+mod twitch;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -20,6 +23,7 @@ struct Cli {
 enum Commands {
     Config(config::ConfigArgs),
     Auth(auth::AuthArgs),
+    Follow(follow::FollowArgs),
 }
 
 #[tokio::main]
@@ -28,5 +32,6 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Config(args) => config::run(args),
         Commands::Auth(args) => auth::run(args).await,
+        Commands::Follow(args) => follow::run(args).await,
     }
 }
