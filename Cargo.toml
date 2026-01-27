@@ -16,7 +16,9 @@ sqlx = { version = "0.8.6", features = [
     "chrono",
 ] }
 tokio = { version = "1.49.0", features = ["full"] }
-reqwest = { version = "0.12.15", default-features = false, features = [
+reqwest = { version = "0.13.1", default-features = false, features = [
     "json",
-    "rustls-tls",
+    "form",
+    "rustls",
+    "webpki-roots",
 ] }
