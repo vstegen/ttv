@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use chrono::Utc;
 use clap::Args;
 
@@ -11,14 +11,19 @@ use crate::{auth, config, db, twitch};
 pub struct FollowArgs {
     #[arg(value_name = "LOGIN", required = true, num_args = 1.., help = "Twitch login name(s) to follow")]
     pub logins: Vec<String>,
+    #[arg(long, help = "Print verbose request and update details")]
+    pub verbose: bool,
 }
 
 pub async fn run(args: FollowArgs) -> Result<()> {
     let mut config = config::load_config()?;
     if token_needs_refresh(&config) {
+        if args.verbose {
+            eprintln!("[INFO] Access token missing or expired, running auth");
+        }
         auth::run(auth::AuthArgs {
             show: false,
-            verbose: false,
+            verbose: args.verbose,
         })
         .await?;
         config = config::load_config()?;
@@ -42,20 +47,31 @@ pub async fn run(args: FollowArgs) -> Result<()> {
         .filter(|value| !value.is_empty())
         .ok_or_else(|| anyhow::anyhow!("Missing Twitch access token. Run `ttv auth`."))?;
 
+    if args.verbose {
+        eprintln!("[INFO] Fetching {} streamer(s) from Twitch", args.logins.len());
+    }
     let users = twitch::fetch_users_by_login(client_id, access_token, &args.logins).await?;
     if users.is_empty() {
         bail!("No streamers found for the provided login names.");
     }
 
     let pool = db::connect().await?;
+    if args.verbose {
+        if let Ok(path) = db::db_path() {
+            eprintln!("[INFO] Using database at {}", path.display());
+        }
+    }
     for user in &users {
         db::upsert_streamer(&pool, user).await?;
+        if args.verbose {
+            eprintln!(
+                "[INFO] Followed {} ({})",
+                user.login, user.display_name
+            );
+        }
     }
 
-    let found: HashSet<String> = users
-        .iter()
-        .map(|user| user.login.to_lowercase())
-        .collect();
+    let found: HashSet<String> = users.iter().map(|user| user.login.to_lowercase()).collect();
     let missing: Vec<String> = args
         .logins
         .iter()

@@ -35,6 +35,7 @@ If no valid access token is available, it will run `auth` automatically.
 ### Options
 
 - `follow <LOGIN...>`: One or more Twitch login names to follow.
+- `--verbose`: Print verbose request and update details.
 
 ## List
 

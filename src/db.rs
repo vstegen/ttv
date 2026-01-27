@@ -3,8 +3,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result};
-use sqlx::sqlite::SqliteConnectOptions;
 use sqlx::SqlitePool;
+use sqlx::sqlite::SqliteConnectOptions;
 
 use crate::twitch::TwitchUser;
 
