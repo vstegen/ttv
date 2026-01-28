@@ -6,6 +6,7 @@ mod config;
 mod db;
 mod follow;
 mod fs_utils;
+mod list;
 mod paths;
 mod twitch;
 
@@ -26,6 +27,7 @@ enum Commands {
     Config(config::ConfigArgs),
     Auth(auth::AuthArgs),
     Follow(follow::FollowArgs),
+    List(list::ListArgs),
 }
 
 #[tokio::main]
@@ -35,5 +37,6 @@ async fn main() -> Result<()> {
         Commands::Config(args) => config::run(args),
         Commands::Auth(args) => auth::run(args).await,
         Commands::Follow(args) => follow::run(args).await,
+        Commands::List(args) => list::run(args).await,
     }
 }

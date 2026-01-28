@@ -44,6 +44,10 @@ The `list` command lists all the streamers you follow. It allows filtering by th
 
 It allows sorting by stream category via a `sort` boolean flag.
 
+### Options
+
+- `--status <online|offline|all>`: Filter by online status (default: `online`).
+
 ## Unfollow
 
 The `unfollow` command allows you to remove a local follow of (multiple) streamers.

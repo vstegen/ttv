@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use chrono::{DateTime, Utc};
 use clap::Args;
 use serde::{Deserialize, Serialize};
@@ -134,6 +134,43 @@ pub(crate) fn print_config(config: &Config) -> Result<()> {
 
 fn mask_value(value: &Option<String>) -> Option<String> {
     value.as_ref().map(|_| "********".to_string())
+}
+
+pub(crate) fn token_needs_refresh(config: &Config) -> bool {
+    let token = config
+        .twitch
+        .access_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty());
+    let expires_at = config.twitch.expires_at;
+
+    match (token, expires_at) {
+        (Some(_), Some(expires_at)) => Utc::now() >= expires_at,
+        _ => true,
+    }
+}
+
+pub(crate) fn require_client_id(config: &Config) -> Result<&str> {
+    config
+        .twitch
+        .client_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| {
+            anyhow::anyhow!("Missing Twitch client ID. Run `ttv config --client-id <ID>`.")
+        })
+}
+
+pub(crate) fn require_access_token(config: &Config) -> Result<&str> {
+    config
+        .twitch
+        .access_token
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| anyhow::anyhow!("Missing Twitch access token. Run `ttv auth`."))
 }
 
 fn save_config(path: &Path, config: &Config) -> Result<()> {

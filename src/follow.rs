@@ -1,7 +1,6 @@
 use std::collections::HashSet;
 
 use anyhow::{Result, bail};
-use chrono::Utc;
 use clap::Args;
 
 use crate::{auth, config, db, twitch};
@@ -17,7 +16,7 @@ pub struct FollowArgs {
 
 pub async fn run(args: FollowArgs) -> Result<()> {
     let mut config = config::load_config()?;
-    if token_needs_refresh(&config) {
+    if config::token_needs_refresh(&config) {
         if args.verbose {
             eprintln!("[INFO] Access token missing or expired, running auth");
         }
@@ -29,23 +28,8 @@ pub async fn run(args: FollowArgs) -> Result<()> {
         config = config::load_config()?;
     }
 
-    let client_id = config
-        .twitch
-        .client_id
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| {
-            anyhow::anyhow!("Missing Twitch client ID. Run `ttv config --client-id <ID>`.")
-        })?;
-
-    let access_token = config
-        .twitch
-        .access_token
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .ok_or_else(|| anyhow::anyhow!("Missing Twitch access token. Run `ttv auth`."))?;
+    let client_id = config::require_client_id(&config)?;
+    let access_token = config::require_access_token(&config)?;
 
     if args.verbose {
         eprintln!("[INFO] Fetching {} streamer(s) from Twitch", args.logins.len());
@@ -85,19 +69,4 @@ pub async fn run(args: FollowArgs) -> Result<()> {
 
     println!("Followed {} streamer(s).", users.len());
     Ok(())
-}
-
-fn token_needs_refresh(config: &config::Config) -> bool {
-    let token = config
-        .twitch
-        .access_token
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty());
-    let expires_at = config.twitch.expires_at;
-
-    match (token, expires_at) {
-        (Some(_), Some(expires_at)) => Utc::now() >= expires_at,
-        _ => true,
-    }
 }

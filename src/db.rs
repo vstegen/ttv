@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use anyhow::{Context, Result};
-use sqlx::SqlitePool;
 use sqlx::sqlite::SqliteConnectOptions;
+use sqlx::{Row, SqlitePool};
 
 use crate::{fs_utils, paths, twitch::TwitchUser};
 
@@ -50,6 +50,30 @@ pub async fn upsert_streamer(pool: &SqlitePool, streamer: &TwitchUser) -> Result
     .await
     .context("failed to upsert streamer")?;
     Ok(())
+}
+
+pub struct DbStreamer {
+    pub id: String,
+    pub name: String,
+    pub display_name: String,
+}
+
+pub async fn list_streamers(pool: &SqlitePool) -> Result<Vec<DbStreamer>> {
+    let rows = sqlx::query("SELECT id, name, display_name FROM streamers ORDER BY name")
+        .fetch_all(pool)
+        .await
+        .context("failed to load streamers")?;
+
+    let mut streamers = Vec::with_capacity(rows.len());
+    for row in rows {
+        streamers.push(DbStreamer {
+            id: row.try_get("id")?,
+            name: row.try_get("name")?,
+            display_name: row.try_get("display_name")?,
+        });
+    }
+
+    Ok(streamers)
 }
 
 async fn init_schema(pool: &SqlitePool) -> Result<()> {
