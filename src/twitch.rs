@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use reqwest::StatusCode;
 use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use std::time::Duration;
 
 const TWITCH_API_ENDPOINT: &str = "https://api.twitch.tv/helix";
@@ -47,27 +48,7 @@ pub async fn fetch_users_by_login(
     let mut users = Vec::new();
     for batch in logins.chunks(100) {
         let url = build_users_url(batch)?;
-        let res = client
-            .get(url)
-            .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
-            )
-            .header("Client-ID", client_id)
-            .send()
-            .await
-            .context("failed to send Twitch request")?;
-
-        let status = res.status();
-        if !status.is_success() {
-            let body = res.text().await.unwrap_or_default();
-            return Err(map_api_error(status, body));
-        }
-
-        let response: UsersResponse = res
-            .json()
-            .await
-            .context("failed to parse Twitch response")?;
+        let response: UsersResponse = get_twitch(&client, client_id, access_token, url).await?;
         users.extend(response.data);
     }
 
@@ -91,27 +72,7 @@ pub async fn fetch_streams_by_user_ids(
     let mut streams = Vec::new();
     for batch in ids.chunks(100) {
         let url = build_streams_url(batch)?;
-        let res = client
-            .get(url)
-            .header(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", access_token),
-            )
-            .header("Client-ID", client_id)
-            .send()
-            .await
-            .context("failed to send Twitch request")?;
-
-        let status = res.status();
-        if !status.is_success() {
-            let body = res.text().await.unwrap_or_default();
-            return Err(map_api_error(status, body));
-        }
-
-        let response: StreamsResponse = res
-            .json()
-            .await
-            .context("failed to parse Twitch response")?;
+        let response: StreamsResponse = get_twitch(&client, client_id, access_token, url).await?;
         streams.extend(response.data);
     }
 
@@ -140,6 +101,36 @@ fn build_streams_url(ids: &[String]) -> Result<reqwest::Url> {
         }
     }
     Ok(url)
+}
+
+async fn get_twitch<T>(
+    client: &reqwest::Client,
+    client_id: &str,
+    access_token: &str,
+    url: reqwest::Url,
+) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    let res = client
+        .get(url)
+        .header(
+            reqwest::header::AUTHORIZATION,
+            format!("Bearer {}", access_token),
+        )
+        .header("Client-ID", client_id)
+        .send()
+        .await
+        .context("failed to send Twitch request")?;
+
+    let status = res.status();
+    let body = res.text().await.unwrap_or_default();
+    if !status.is_success() {
+        return Err(map_api_error(status, body));
+    }
+
+    let parsed = serde_json::from_str(&body).context("failed to parse Twitch response")?;
+    Ok(parsed)
 }
 
 fn map_api_error(status: StatusCode, body: String) -> anyhow::Error {
