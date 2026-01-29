@@ -52,6 +52,10 @@ It allows sorting by stream category via a `sort` boolean flag.
 
 The `unfollow` command allows you to remove a local follow of (multiple) streamers.
 
+### Options
+
+- `unfollow <LOGIN...>`: One or more Twitch login names to unfollow.
+
 ## VOD
 
 The `vod` command allows specifying the streamer you want to watch a VOD of.

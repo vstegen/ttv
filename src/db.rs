@@ -76,6 +76,15 @@ pub async fn list_streamers(pool: &SqlitePool) -> Result<Vec<DbStreamer>> {
     Ok(streamers)
 }
 
+pub async fn delete_streamer_by_login(pool: &SqlitePool, login: &str) -> Result<u64> {
+    let result = sqlx::query("DELETE FROM streamers WHERE lower(name) = lower(?1)")
+        .bind(login)
+        .execute(pool)
+        .await
+        .context("failed to delete streamer")?;
+    Ok(result.rows_affected())
+}
+
 async fn init_schema(pool: &SqlitePool) -> Result<()> {
     sqlx::query(
         r#"

@@ -9,6 +9,7 @@ mod fs_utils;
 mod list;
 mod paths;
 mod twitch;
+mod unfollow;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -28,6 +29,7 @@ enum Commands {
     Auth(auth::AuthArgs),
     Follow(follow::FollowArgs),
     List(list::ListArgs),
+    Unfollow(unfollow::UnfollowArgs),
 }
 
 #[tokio::main]
@@ -38,5 +40,6 @@ async fn main() -> Result<()> {
         Commands::Auth(args) => auth::run(args).await,
         Commands::Follow(args) => follow::run(args).await,
         Commands::List(args) => list::run(args).await,
+        Commands::Unfollow(args) => unfollow::run(args).await,
     }
 }
