@@ -55,6 +55,7 @@ The `unfollow` command allows you to remove a local follow of (multiple) streame
 ### Options
 
 - `unfollow <LOGIN...>`: One or more Twitch login names to unfollow.
+- `--verbose`: Print verbose delete details.
 
 ## VOD
 

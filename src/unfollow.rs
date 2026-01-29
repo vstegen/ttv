@@ -10,6 +10,8 @@ use crate::db;
 pub struct UnfollowArgs {
     #[arg(value_name = "LOGIN", required = true, num_args = 1.., help = "Twitch login name(s) to unfollow")]
     pub logins: Vec<String>,
+    #[arg(long, help = "Print verbose delete details")]
+    pub verbose: bool,
 }
 
 pub async fn run(args: UnfollowArgs) -> Result<()> {
@@ -24,11 +26,17 @@ pub async fn run(args: UnfollowArgs) -> Result<()> {
             continue;
         }
 
+        if args.verbose {
+            eprintln!("[INFO] Removing {}", login);
+        }
         let affected = db::delete_streamer_by_login(&pool, login).await?;
         if affected == 0 {
             missing.push(login.clone());
         } else {
             removed += affected;
+            if args.verbose {
+                eprintln!("[INFO] Removed {}", login);
+            }
         }
     }
 
