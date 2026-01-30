@@ -63,6 +63,12 @@ The `vod` command allows specifying the streamer you want to watch a VOD of.
 When not supplying an argument, all followed streamers will be listed
 and `ttv` will allow selecting from the available streams.
 
+Currently, you must supply a single Twitch login name. The command lists recent VODs and prompts you to choose one to play.
+
+### Options
+
+- `vod <LOGIN>`: Twitch login name to fetch VODs for.
+
 ## Watch
 
 The `watch` command allows to specifiy (multiple) streamers for whom you want to start their stream.

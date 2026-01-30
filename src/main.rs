@@ -8,9 +8,11 @@ mod follow;
 mod fs_utils;
 mod list;
 mod paths;
+mod streamlink;
 mod twitch;
 mod unfollow;
 mod watch;
+mod vod;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -32,6 +34,7 @@ enum Commands {
     List(list::ListArgs),
     Unfollow(unfollow::UnfollowArgs),
     Watch(watch::WatchArgs),
+    Vod(vod::VodArgs),
 }
 
 #[tokio::main]
@@ -44,5 +47,6 @@ async fn main() -> Result<()> {
         Commands::List(args) => list::run(args).await,
         Commands::Unfollow(args) => unfollow::run(args).await,
         Commands::Watch(args) => watch::run(args).await,
+        Commands::Vod(args) => vod::run(args).await,
     }
 }

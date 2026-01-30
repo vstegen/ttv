@@ -1,12 +1,7 @@
 use std::collections::HashSet;
-use std::process::{Command as StdCommand, Stdio};
-
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use clap::Args;
-use tokio::process::Command;
-
-const STREAMLINK_ARGS: [&str; 4] = ["--twitch-disable-ads", "--player", "mpv", "-a"];
-const STREAMLINK_PLAYER_ARGS: &str = "--cache=yes --cache-secs=600";
+use crate::streamlink;
 
 #[derive(Debug, Args)]
 #[command(about = "Watch Twitch streams via streamlink and mpv")]
@@ -16,8 +11,7 @@ pub struct WatchArgs {
 }
 
 pub async fn run(args: WatchArgs) -> Result<()> {
-    ensure_command_available("streamlink")?;
-    ensure_command_available("mpv")?;
+    streamlink::ensure_dependencies()?;
 
     let logins = normalize_inputs(&args.streams)?;
     if logins.is_empty() {
@@ -29,17 +23,7 @@ pub async fn run(args: WatchArgs) -> Result<()> {
         let url = format!("https://www.twitch.tv/{login}");
         println!("Starting stream for {login}...");
 
-        let mut cmd = Command::new("streamlink");
-        cmd.args(STREAMLINK_ARGS)
-            .arg(STREAMLINK_PLAYER_ARGS)
-            .arg(url)
-            .arg("best")
-            .stdin(Stdio::null())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit());
-
-        let mut child = cmd
-            .spawn()
+        let mut child = streamlink::spawn(&url)
             .with_context(|| format!("failed to start streamlink for {login}"))?;
 
         handles.push(tokio::spawn(async move {
@@ -66,22 +50,6 @@ pub async fn run(args: WatchArgs) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn ensure_command_available(name: &str) -> Result<()> {
-    let result = StdCommand::new(name)
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .output();
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
-            bail!("`{}` not found on PATH. Please install it.", name)
-        }
-        Err(err) => bail!("Failed to execute `{}`: {}", name, err),
-    }
 }
 
 fn normalize_inputs(inputs: &[String]) -> Result<Vec<String>> {

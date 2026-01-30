@@ -31,6 +31,19 @@ struct StreamsResponse {
     data: Vec<TwitchStream>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct TwitchVod {
+    pub id: String,
+    pub title: String,
+    pub duration: String,
+    pub created_at: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct VodsResponse {
+    data: Vec<TwitchVod>,
+}
+
 pub async fn fetch_users_by_login(
     client_id: &str,
     access_token: &str,
@@ -79,6 +92,33 @@ pub async fn fetch_streams_by_user_ids(
     Ok(streams)
 }
 
+pub async fn fetch_user_by_login(
+    client_id: &str,
+    access_token: &str,
+    login: &str,
+) -> Result<TwitchUser> {
+    let users = fetch_users_by_login(client_id, access_token, &[login.to_string()]).await?;
+    users
+        .into_iter()
+        .next()
+        .ok_or_else(|| anyhow::anyhow!("No streamer found with login `{}`.", login))
+}
+
+pub async fn fetch_vods_by_user_id(
+    client_id: &str,
+    access_token: &str,
+    user_id: &str,
+) -> Result<Vec<TwitchVod>> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(5))
+        .build()
+        .context("failed to build Twitch API client")?;
+
+    let url = build_vods_url(user_id)?;
+    let response: VodsResponse = get_twitch(&client, client_id, access_token, url).await?;
+    Ok(response.data)
+}
+
 fn build_users_url(logins: &[String]) -> Result<reqwest::Url> {
     let mut url = reqwest::Url::parse(&format!("{}/users", TWITCH_API_ENDPOINT))
         .context("failed to build Twitch users URL")?;
@@ -99,6 +139,17 @@ fn build_streams_url(ids: &[String]) -> Result<reqwest::Url> {
         for id in ids {
             pairs.append_pair("user_id", id);
         }
+    }
+    Ok(url)
+}
+
+fn build_vods_url(user_id: &str) -> Result<reqwest::Url> {
+    let mut url = reqwest::Url::parse(&format!("{}/videos", TWITCH_API_ENDPOINT))
+        .context("failed to build Twitch videos URL")?;
+    {
+        let mut pairs = url.query_pairs_mut();
+        pairs.append_pair("user_id", user_id);
+        pairs.append_pair("type", "archive");
     }
     Ok(url)
 }
