@@ -1,9 +1,9 @@
 use std::process::{Command as StdCommand, Stdio};
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use tokio::process::Command;
 
-const STREAMLINK_ARGS: [&str; 4] = ["--twitch-disable-ads", "--player", "mpv", "-a"];
+const STREAMLINK_ARGS: [&str; 3] = ["--player", "mpv", "-a"];
 const STREAMLINK_PLAYER_ARGS: &str = "--cache=yes --cache-secs=600";
 
 pub fn ensure_dependencies() -> Result<()> {
