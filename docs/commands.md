@@ -71,3 +71,7 @@ If no streamer is specified, you will get a list of all online streamers you are
 It allows sorting by stream category via a `sort` boolean flag.
 
 Streams are started via `streamlink`
+
+### Options
+
+- `watch <STREAM...>`: Twitch login names or Twitch URLs matching `https?://(www\.)?twitch\.tv/([\d\w]+)`.

@@ -10,6 +10,7 @@ mod list;
 mod paths;
 mod twitch;
 mod unfollow;
+mod watch;
 
 #[derive(Debug, Parser)]
 #[command(
@@ -30,6 +31,7 @@ enum Commands {
     Follow(follow::FollowArgs),
     List(list::ListArgs),
     Unfollow(unfollow::UnfollowArgs),
+    Watch(watch::WatchArgs),
 }
 
 #[tokio::main]
@@ -41,5 +43,6 @@ async fn main() -> Result<()> {
         Commands::Follow(args) => follow::run(args).await,
         Commands::List(args) => list::run(args).await,
         Commands::Unfollow(args) => unfollow::run(args).await,
+        Commands::Watch(args) => watch::run(args).await,
     }
 }
