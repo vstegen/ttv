@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
+use colored::Colorize;
 use clap::{Args, ValueEnum};
 
 use crate::{auth, config, db, twitch};
@@ -160,54 +161,58 @@ fn print_table(rows: &[Row], include_status: bool) {
         0
     };
 
+    let header_login = format!("{:<login_width$}", "login", login_width = login_width)
+        .cyan()
+        .bold();
+    let header_display = format!(
+        "{:<display_width$}",
+        "display_name",
+        display_width = display_width
+    )
+    .cyan()
+    .bold();
+    let header_game = format!("{:<game_width$}", "game", game_width = game_width)
+        .cyan()
+        .bold();
     if include_status {
+        let header_status = format!("{:<status_width$}", "status", status_width = status_width)
+            .cyan()
+            .bold();
         println!(
-            "{:<login_width$}  {:<display_width$}  {:<game_width$}  {:<status_width$}",
-            "login",
-            "display_name",
-            "game",
-            "status",
-            login_width = login_width,
-            display_width = display_width,
-            game_width = game_width,
-            status_width = status_width
+            "{}  {}  {}  {}",
+            header_login, header_display, header_game, header_status
         );
     } else {
         println!(
-            "{:<login_width$}  {:<display_width$}  {:<game_width$}",
-            "login",
-            "display_name",
-            "game",
-            login_width = login_width,
-            display_width = display_width,
-            game_width = game_width
+            "{}  {}  {}",
+            header_login, header_display, header_game
         );
     }
 
     for row in rows {
+        let login = format!("{:<login_width$}", row.login, login_width = login_width).bold();
+        let display = format!(
+            "{:<display_width$}",
+            row.display_name,
+            display_width = display_width
+        );
+        let game_value = format!("{:<game_width$}", row.game_name, game_width = game_width);
+        let game = if row.game_name.is_empty() {
+            game_value.normal()
+        } else {
+            game_value.yellow()
+        };
         if include_status {
             let status = row.status.unwrap_or("");
-            println!(
-                "{:<login_width$}  {:<display_width$}  {:<game_width$}  {:<status_width$}",
-                row.login,
-                row.display_name,
-                row.game_name,
-                status,
-                login_width = login_width,
-                display_width = display_width,
-                game_width = game_width,
-                status_width = status_width
-            );
+            let status_padded = format!("{:<status_width$}", status, status_width = status_width);
+            let status_colored = match status {
+                "online" => status_padded.green(),
+                "offline" => status_padded.red(),
+                _ => status_padded.normal(),
+            };
+            println!("{}  {}  {}  {}", login, display, game, status_colored);
         } else {
-            println!(
-                "{:<login_width$}  {:<display_width$}  {:<game_width$}",
-                row.login,
-                row.display_name,
-                row.game_name,
-                login_width = login_width,
-                display_width = display_width,
-                game_width = game_width
-            );
+            println!("{}  {}  {}", login, display, game);
         }
     }
 }
