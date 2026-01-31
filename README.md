@@ -25,7 +25,7 @@ cd ttv-rs
 cargo build --release
 ```
 
-The binary will be at `target/release/ttv-rs` (you may want to rename it to `ttv` or add it to your `PATH`).
+The binary will be at `target/release/ttv` (add it to your `PATH`).
 
 ## Configuration
 
