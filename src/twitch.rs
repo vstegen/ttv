@@ -21,7 +21,9 @@ struct UsersResponse {
 #[derive(Debug, Deserialize)]
 pub struct TwitchStream {
     pub user_id: String,
+    #[allow(dead_code)]
     pub user_login: String,
+    #[allow(dead_code)]
     pub user_name: String,
     pub game_name: String,
 }
